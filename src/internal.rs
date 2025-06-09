@@ -55,7 +55,12 @@ pub trait BitSized: Copy {
 ///
 /// (Byte grained.)
 pub trait Bits:
-    Copy + BitOr<Output = Self> + BitAnd<Output = Self> + BitXor<Output = Self> + Not<Output = Self>
+    Copy
+    + BitOr<Output = Self>
+    + BitAnd<Output = Self>
+    + BitXor<Output = Self>
+    + Not<Output = Self>
+    + private::Sealed
 {
     const ZERO: Self;
     const MAX: Self;
@@ -70,6 +75,117 @@ pub trait Bits:
 pub trait Widen<Wide> {
     fn widen(self) -> Wide;
     fn narrow(wide: Wide) -> Self;
+}
+
+macro_rules! impl_uint {
+    ($($n:ident)*) => {
+        $(
+            impl Bits for $n {
+                const ZERO: Self = 0;
+                const MAX: Self = Self::MAX;
+
+                fn wrapping_shl(self, n: u32) -> Self {
+                    self.wrapping_shl(n)
+                }
+
+                fn wrapping_shr(self, n: u32) -> Self {
+                    self.wrapping_shr(n)
+                }
+            }
+
+            impl BitSized for $n {
+                type Inner = $n;
+
+                const BITS: usize = Self::BITS as usize;
+
+                #[inline]
+                fn into_inner(self) -> Self::Inner {
+                    self
+                }
+
+                #[inline]
+                fn from_inner(inner: Self::Inner) -> Self {
+                    inner
+                }
+            }
+
+            impl<const BITS: usize> BitSized for arbitrary_int::UInt<$n, BITS> {
+                type Inner = $n;
+
+                const BITS: usize = BITS;
+
+                #[inline]
+                fn into_inner(self) -> Self::Inner {
+                    self.value()
+                }
+
+                #[inline]
+                fn from_inner(inner: Self::Inner) -> Self {
+                    <Self as arbitrary_int::Number>::masked_new(inner)
+                }
+            }
+
+            impl Storage for $n {}
+            impl private::Sealed for $n {}
+
+            impl<const BITS: usize> Storage for arbitrary_int::UInt<$n, BITS> {}
+            impl<const BITS: usize> private::Sealed for arbitrary_int::UInt<$n, BITS> {}
+        )*
+    };
+}
+
+impl_uint!(u8 u16 u32 u64 u128);
+
+impl BitSized for bool {
+    type Inner = u8;
+
+    const BITS: usize = 1;
+
+    #[inline]
+    fn from_inner(inner: Self::Inner) -> Self {
+        inner != 0
+    }
+
+    #[inline]
+    fn into_inner(self) -> Self::Inner {
+        self as u8
+    }
+}
+
+macro_rules! impl_widen {
+    ($narrow:ident $($wide:ident)*) => {
+        $(
+        impl Widen<$wide> for $narrow {
+            #[inline]
+            fn widen(self) -> $wide {
+                self as $wide
+            }
+
+            #[inline]
+            fn narrow(wide: $wide) -> Self {
+                wide as Self
+            }
+        }
+        )*
+
+        impl_widen!($($wide)*);
+    };
+
+    () => {};
+}
+
+impl_widen!(u8 u16 u32 u64 u128);
+
+impl<T> Widen<T> for T {
+    #[inline]
+    fn widen(self) -> T {
+        self
+    }
+
+    #[inline]
+    fn narrow(wide: T) -> Self {
+        wide
+    }
 }
 
 mod private {

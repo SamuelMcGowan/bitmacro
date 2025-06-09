@@ -5,32 +5,32 @@ pub trait Storage: BitSized + private::Sealed {
     fn extract<T>(&self, offset: u32) -> T
     where
         T: BitSized,
-        T::Inner: Widen<Self::Inner>,
+        T::Bits: Widen<Self::Bits>,
     {
         check_bits_and_offset::<Self, T>(offset);
 
-        let shifted = self.into_inner().wrapping_shr(offset);
-        let narrowed = T::Inner::narrow(shifted);
+        let shifted = self.into_bits().wrapping_shr(offset);
+        let narrowed = T::Bits::narrow(shifted);
 
-        T::from_inner(narrowed)
+        T::from_bits(narrowed)
     }
 
     fn insert<T>(&mut self, offset: u32, value: T)
     where
         T: BitSized,
-        T::Inner: Widen<Self::Inner>,
+        T::Bits: Widen<Self::Bits>,
     {
         check_bits_and_offset::<Self, T>(offset);
 
-        let mask = Self::Inner::MAX
+        let mask = Self::Bits::MAX
             .wrapping_shr((Self::BITS - T::BITS) as u32)
             .wrapping_shl(offset);
 
-        let widened = value.into_inner().widen();
+        let widened = value.into_bits().widen();
         let shifted = widened.wrapping_shl(offset);
 
-        let combined = (self.into_inner() & !mask) | (shifted & mask);
-        *self = Self::from_inner(combined);
+        let combined = (self.into_bits() & !mask) | (shifted & mask);
+        *self = Self::from_bits(combined);
     }
 }
 
@@ -43,12 +43,12 @@ fn check_bits_and_offset<S: Storage, T: BitSized>(offset: u32) {
 
 /// A type with bit-grained size.
 pub trait BitSized: Copy {
-    type Inner: Bits;
+    type Bits: Bits;
 
     const BITS: usize;
 
-    fn from_inner(inner: Self::Inner) -> Self;
-    fn into_inner(self) -> Self::Inner;
+    fn from_bits(bits: Self::Bits) -> Self;
+    fn into_bits(self) -> Self::Bits;
 }
 
 /// Bits which can be operated on.
@@ -94,34 +94,34 @@ macro_rules! impl_uint {
             }
 
             impl BitSized for $n {
-                type Inner = $n;
+                type Bits = $n;
 
                 const BITS: usize = Self::BITS as usize;
 
                 #[inline]
-                fn into_inner(self) -> Self::Inner {
+                fn into_bits(self) -> Self::Bits {
                     self
                 }
 
                 #[inline]
-                fn from_inner(inner: Self::Inner) -> Self {
-                    inner
+                fn from_bits(bits: Self::Bits) -> Self {
+                    bits
                 }
             }
 
             impl<const BITS: usize> BitSized for arbitrary_int::UInt<$n, BITS> {
-                type Inner = $n;
+                type Bits = $n;
 
                 const BITS: usize = BITS;
 
                 #[inline]
-                fn into_inner(self) -> Self::Inner {
+                fn into_bits(self) -> Self::Bits {
                     self.value()
                 }
 
                 #[inline]
-                fn from_inner(inner: Self::Inner) -> Self {
-                    <Self as arbitrary_int::Number>::masked_new(inner)
+                fn from_bits(bits: Self::Bits) -> Self {
+                    <Self as arbitrary_int::Number>::masked_new(bits)
                 }
             }
 
@@ -137,17 +137,17 @@ macro_rules! impl_uint {
 impl_uint!(u8 u16 u32 u64 u128);
 
 impl BitSized for bool {
-    type Inner = u8;
+    type Bits = u8;
 
     const BITS: usize = 1;
 
     #[inline]
-    fn from_inner(inner: Self::Inner) -> Self {
-        inner != 0
+    fn from_bits(bits: Self::Bits) -> Self {
+        bits != 0
     }
 
     #[inline]
-    fn into_inner(self) -> Self::Inner {
+    fn into_bits(self) -> Self::Bits {
         self as u8
     }
 }

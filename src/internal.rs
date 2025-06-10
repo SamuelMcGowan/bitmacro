@@ -2,6 +2,8 @@ use std::ops::{BitAnd, BitOr, BitXor, Not};
 
 /// A type which can be used as the backing storage for a bitfield.
 pub trait Storage: BitSized + private::Sealed {
+    const EMPTY: Self;
+
     fn extract<T>(&self, offset: u32) -> T
     where
         T: BitSized,
@@ -125,10 +127,14 @@ macro_rules! impl_uint {
                 }
             }
 
-            impl Storage for $n {}
+            impl Storage for $n {
+                const EMPTY: Self = 0;
+            }
             impl private::Sealed for $n {}
 
-            impl<const BITS: usize> Storage for arbitrary_int::UInt<$n, BITS> {}
+            impl<const BITS: usize> Storage for arbitrary_int::UInt<$n, BITS> {
+                const EMPTY: Self = Self::new(0);
+            }
             impl<const BITS: usize> private::Sealed for arbitrary_int::UInt<$n, BITS> {}
         )*
     };

@@ -1,13 +1,18 @@
 #[macro_export]
 macro_rules! bitfield {
     (
+        $(#[$attr:meta])*
         $vis:vis struct $ident:ident : $storage:ty {
             $(
-                $( $field_vis:vis $field:ident : $field_ty:ty ),+
+                $(
+                    $(#[$field_attr:meta])*
+                    $field_vis:vis $field:ident : $field_ty:ty
+                ),+
                 $(,)?
             )?
         }
     ) => {
+        $(#[$attr])*
         #[allow(dead_code)]
         #[derive(Clone, Copy)]
         $vis struct $ident($storage);
@@ -16,12 +21,19 @@ macro_rules! bitfield {
         where
             $storage: $crate::internal::Storage
         {
+            #[doc=concat!("Create an empty [`", stringify!($ident), "`].\n\n")]
             #[inline]
             pub const fn empty() -> Self {
                 Self(<$storage as $crate::internal::Storage>::EMPTY)
             }
 
-            $( $crate::bitfield_accessors! { 0u32; $( $field_vis $field : $field_ty, )* } )?
+            $( $crate::bitfield_accessors! {
+                0u32;
+                $(
+                    $(#[$field_attr])*
+                    $field_vis $field : $field_ty,
+                )*
+            } )?
         }
 
         impl $crate::internal::BitSized for $ident
@@ -70,20 +82,26 @@ macro_rules! bitfield {
 macro_rules! bitfield_accessors {
     (
         $offset:expr;
+        $(#[$field_attr:meta])*
         $field_vis:vis $field:ident : $field_ty:ty,
         $($rest:tt)*
     ) => {
         $crate::paste! {
+            $(#[$field_attr])*
             #[inline]
             $field_vis fn $field(&self) -> $field_ty {
                 $crate::internal::Storage::extract(&self.0, $offset)
             }
 
+            #[doc=concat!("Set [`Self::", stringify!($field), "`].\n\n")]
+            $(#[$field_attr])*
             #[inline]
             $field_vis fn [< set_ $field >] (&mut self, value: $field_ty) {
                 $crate::internal::Storage::insert(&mut self.0, $offset, value);
             }
 
+            #[doc=concat!("Return this bitfield with [`Self::", stringify!($field), "`] set.\n\n")]
+            $(#[$field_attr])*
             #[inline]
             $field_vis fn [< with_ $field >] (mut self, value: $field_ty) -> Self {
                 self. [< set_ $field >] (value);

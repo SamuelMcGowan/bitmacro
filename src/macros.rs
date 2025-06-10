@@ -12,11 +12,16 @@ macro_rules! bitfield {
         #[derive(Clone, Copy)]
         $vis struct $ident($storage);
 
-        impl $ident {
+        impl $ident
+        where
+            $storage: $crate::internal::Storage
+        {
             #[inline]
             pub const fn empty() -> Self {
                 Self(<$storage as $crate::internal::Storage>::EMPTY)
             }
+
+            $( $crate::bitfield_accessors! { 0u32; $( $field_vis $field : $field_ty, )* } )?
         }
 
         impl $crate::internal::BitSized for $ident
@@ -37,5 +42,48 @@ macro_rules! bitfield {
                 <$storage as $crate::internal::BitSized>::into_bits(self.0)
             }
         }
+
+        const _: () = {
+            if <$ident as $crate::internal::BitSized>::BITS < <$storage as $crate::internal::BitSized>::BITS {
+                panic!("fields  add up to less than bitfield size");
+            } else if <$ident as $crate::internal::BitSized>::BITS > <$storage as $crate::internal::BitSized>::BITS {
+                panic!("fields  add up to more than bitfield size");
+            }
+        };
     };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! bitfield_accessors {
+    (
+        $offset:expr;
+        $field_vis:vis $field:ident : $field_ty:ty,
+        $($rest:tt)*
+    ) => {
+        $crate::paste! {
+            #[inline]
+            $field_vis fn $field(&self) -> $field_ty {
+                $crate::internal::Storage::extract(&self.0, $offset)
+            }
+
+            #[inline]
+            $field_vis fn [< set_ $field >] (&mut self, value: $field_ty) {
+                $crate::internal::Storage::insert(&mut self.0, $offset, value);
+            }
+
+            #[inline]
+            $field_vis fn [< with_ $field >] (mut self, value: $field_ty) -> Self {
+                self. [< set_ $field >] (value);
+                self
+            }
+        }
+
+        $crate::bitfield_accessors! {
+            $offset + <$field_ty as $crate::internal::BitSized>::BITS as u32;
+            $($rest)*
+        }
+    };
+
+    ($offset:expr;) => {};
 }

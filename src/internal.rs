@@ -149,7 +149,7 @@ impl BitSized for bool {
 
     #[inline]
     fn from_bits(bits: Self::Bits) -> Self {
-        bits != 0
+        (bits & 1) != 0
     }
 
     #[inline]

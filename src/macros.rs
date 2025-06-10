@@ -50,6 +50,18 @@ macro_rules! bitfield {
                 panic!("fields  add up to more than bitfield size");
             }
         };
+
+        impl ::core::fmt::Debug for $ident
+        where
+            $storage: $crate::internal::Storage,
+            $( $( $field_ty: ::core::fmt::Debug, )* )?
+        {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                let mut f = f.debug_struct(stringify!($ident));
+                $( $( f.field(stringify!($field), &self.$field()); )* )?
+                f.finish()
+            }
+        }
     };
 }
 

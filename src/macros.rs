@@ -117,3 +117,66 @@ macro_rules! bitfield_accessors {
 
     ($offset:expr;) => {};
 }
+
+#[macro_export]
+macro_rules! bitfield_enum {
+    (
+        $(#[$attr:meta])*
+        $vis:vis enum $ident:ident : $storage:ty {
+            $(
+                $(
+                    $(#[$variant_attr:meta])*
+                    $variant:ident = $bits:expr
+                ),+
+                $(,)?
+            )?
+        }
+    ) => {
+        $(#[$attr])*
+        #[derive(Clone, Copy)]
+        $vis enum $ident {
+            $(
+                $(
+                    $(#[$variant_attr])*
+                    $variant = $bits,
+                )*
+            )?
+        }
+
+        impl $crate::internal::BitSized for $ident
+        where
+            Self: ::core::default::Default
+        {
+            type Bits = <$storage as $crate::internal::BitSized>::Bits;
+
+            const BITS: usize = <$storage as $crate::internal::BitSized>::BITS;
+
+            #[inline]
+            #[allow(non_upper_case_globals)]
+            fn from_bits(bits: Self::Bits) -> Self {
+                $crate::paste! {
+                    $( $(
+                        const [< $variant >]: <$storage as $crate::internal::BitSized>::Bits = $bits;
+                    )* )?
+
+                    let bits = $crate::internal::BitSized::into_bits(bits);
+                    match bits {
+                        $( $(
+                            $variant => Self::$variant,
+                        )* )?
+                        _ => ::core::default::Default::default(),
+                    }
+                }
+            }
+
+            #[inline]
+            fn into_bits(self) -> Self::Bits {
+                match self {
+                    $( $(
+                            Self::$variant => $bits,
+                    )* )?
+                }
+            }
+        }
+    };
+}

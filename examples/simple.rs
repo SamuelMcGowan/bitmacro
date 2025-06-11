@@ -1,5 +1,5 @@
 use arbitrary_int::u3;
-use bitmacro2::bitfield;
+use bitmacro2::{bitfield, bitfield_enum};
 
 fn main() {
     let mut flags = PageTableEntryFlags::empty()
@@ -40,5 +40,21 @@ bitfield! {
         pub read: bool,
         pub write: bool,
         pub execute: bool,
+    }
+}
+
+bitfield_enum! {
+    #[derive(Default)]
+    pub enum PermissionsV2: u3 {
+        #[default]
+        Unknown = 0,
+
+        Read = 0b01,
+        Write = 0b10,
+        Execute = 0b100,
+
+        ReadWrite = 0b11,
+        ReadExecute = 0b101,
+        ReadWriteExecute = 0b111,
     }
 }

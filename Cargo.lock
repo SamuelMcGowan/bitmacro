@@ -9,7 +9,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "825297538d77367557b912770ca3083f778a196054b3ee63b22673c4a3cae0a5"
 
 [[package]]
-name = "bitmacro2"
+name = "bitmacro"
 version = "0.1.0"
 dependencies = [
  "arbitrary-int",

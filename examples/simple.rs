@@ -1,5 +1,5 @@
 use arbitrary_int::u3;
-use bitmacro2::{bitfield, bitfield_enum};
+use bitmacro::{bitfield, bitfield_enum};
 
 fn main() {
     let mut flags = PageTableEntryFlags::empty()

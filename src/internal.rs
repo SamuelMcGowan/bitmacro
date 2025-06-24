@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, BitXor, Not};
+use core::ops::{BitAnd, BitOr, BitXor, Not};
 
 /// A type which can be used as the backing storage for a bitfield.
 pub trait Storage: BitSized + private::Sealed {

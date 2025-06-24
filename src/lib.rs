@@ -1,7 +1,10 @@
 #![no_std]
 
+#[doc(hidden)]
 pub mod internal;
-pub mod macros;
+mod macros;
 
 #[doc(hidden)]
 pub use paste::paste;
+
+pub use arbitrary_int;

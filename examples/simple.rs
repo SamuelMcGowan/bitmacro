@@ -3,7 +3,7 @@ use bitmacro2::{bitfield, bitfield_enum};
 
 fn main() {
     let mut flags = PageTableEntryFlags::empty()
-        .with_perms(Permissions::empty().with_read(true).with_execute(true))
+        .with_permissions(Permissions::ReadExecute)
         .with_valid(true);
 
     flags.set_valid(true);
@@ -19,7 +19,7 @@ bitfield! {
         pub valid: bool,
 
         /// Page permissions.
-        pub perms: Permissions,
+        pub permissions: Permissions,
 
         /// Whether this is a user page.
         pub user: bool,
@@ -35,20 +35,8 @@ bitfield! {
     }
 }
 
-bitfield! {
-    pub struct Permissions: u3 {
-        pub read: bool,
-        pub write: bool,
-        pub execute: bool,
-    }
-}
-
 bitfield_enum! {
-    #[derive(Default)]
-    pub enum PermissionsV2: u3 {
-        #[default]
-        Unknown = 0,
-
+    pub enum Permissions: u3 {
         Read = 0b01,
         Write = 0b10,
         Execute = 0b100,
@@ -56,5 +44,8 @@ bitfield_enum! {
         ReadWrite = 0b11,
         ReadExecute = 0b101,
         ReadWriteExecute = 0b111,
+
+        Reserved0 = 0,
+        Reserved1 = 0b110,
     }
 }

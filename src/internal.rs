@@ -3,6 +3,7 @@ use std::ops::{BitAnd, BitOr, BitXor, Not};
 /// A type which can be used as the backing storage for a bitfield.
 pub trait Storage: BitSized + private::Sealed {
     const EMPTY: Self;
+    const MAX_BITS: Self::Bits;
 
     fn extract<T>(&self, offset: u32) -> T
     where
@@ -129,12 +130,15 @@ macro_rules! impl_uint {
 
             impl Storage for $n {
                 const EMPTY: Self = 0;
+                const MAX_BITS: Self::Bits = $n::MAX;
             }
             impl private::Sealed for $n {}
 
             impl<const BITS: usize> Storage for arbitrary_int::UInt<$n, BITS> {
                 const EMPTY: Self = Self::new(0);
+                const MAX_BITS: Self::Bits = <Self as arbitrary_int::Number>::MAX.value();
             }
+
             impl<const BITS: usize> private::Sealed for arbitrary_int::UInt<$n, BITS> {}
         )*
     };

@@ -133,7 +133,7 @@ macro_rules! bitfield_enum {
         }
     ) => {
         $(#[$attr])*
-        #[derive(Clone, Copy)]
+        #[derive(Debug, Clone, Copy)]
         $vis enum $ident {
             $(
                 $(
@@ -143,10 +143,16 @@ macro_rules! bitfield_enum {
             )?
         }
 
-        impl $crate::internal::BitSized for $ident
-        where
-            Self: ::core::default::Default
-        {
+        // Exhaustiveness check.
+        const _: () = {
+            const NUM_VARIANTS: <$storage as $crate::internal::BitSized>::Bits = $crate::count!(0; $($($variant)*)?);
+
+            if NUM_VARIANTS == 0 || NUM_VARIANTS - 1 < <$storage as $crate::internal::Storage>::MAX_BITS {
+                panic!("non-exhaustive - all possible discriminants should be covered");
+            }
+        };
+
+        impl $crate::internal::BitSized for $ident {
             type Bits = <$storage as $crate::internal::BitSized>::Bits;
 
             const BITS: usize = <$storage as $crate::internal::BitSized>::BITS;
@@ -160,11 +166,15 @@ macro_rules! bitfield_enum {
                     )* )?
 
                     let bits = $crate::internal::BitSized::into_bits(bits);
+
+
                     match bits {
                         $( $(
                             $variant => Self::$variant,
                         )* )?
-                        _ => ::core::default::Default::default(),
+
+                        // Variants are exhastive.
+                        _ => unreachable!(),
                     }
                 }
             }
@@ -179,4 +189,13 @@ macro_rules! bitfield_enum {
             }
         }
     };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! count {
+    ($acc:expr; $tt:tt $($rest:tt)*) => {
+        $crate::count!($acc + 1; $($rest)*)
+    };
+    ($acc:expr;) => { $acc };
 }

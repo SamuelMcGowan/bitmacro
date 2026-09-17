@@ -89,6 +89,8 @@ macro_rules! bitfield_accessors {
         $field_vis:vis _reserved : $field_ty:ty,
         $($rest:tt)*
     ) => {
+        $crate::error_if_vis!("visibility not supported before `_reserved`"; $field_vis);
+        $crate::error_if_tokens!("field attributes not supported before `_reserved`"; $($field_attr)*);
         $crate::bitfield_accessors! {
             $offset + <$field_ty as $crate::internal::BitSized>::BITS as u32;
             $($rest)*
@@ -228,4 +230,22 @@ macro_rules! count {
         $crate::count!($acc + 1; $($rest)*)
     };
     ($acc:expr;) => { $acc };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! error_if_tokens {
+    ($msg:literal;) => {};
+    ($msg:literal; $($tt:tt)+) => {
+        compile_error! { $msg }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! error_if_vis {
+    ($msg:literal; pub $($tt:tt)*) => {
+        compile_error!($msg);
+    };
+    ($msg:literal; $($tt:tt)*) => {};
 }

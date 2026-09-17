@@ -1,14 +1,17 @@
-use arbitrary_int::u3;
+use arbitrary_int::*;
 use bitmacro::{bitfield, bitfield_enum};
 
 fn main() {
     let mut flags = PageTableEntryFlags::empty()
         .with_permissions(Permissions::ReadExecute)
         .with_valid(true);
-
     flags.set_valid(true);
-
     dbg!(flags);
+
+    let res = WithReserved::empty()
+        .with_foo(u3::new(7))
+        .with_bar(u2::new(3));
+    dbg!(res);
 }
 
 bitfield! {
@@ -47,5 +50,15 @@ bitfield_enum! {
 
         Reserved0 = 0,
         Reserved1 = 0b110,
+    }
+}
+
+bitfield! {
+    pub struct WithReserved: u8  {
+        _reserved: bool,
+        _reserved: bool,
+        foo: u3,
+        _reserved: bool,
+        bar: u2,
     }
 }

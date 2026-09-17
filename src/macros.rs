@@ -36,6 +36,7 @@ macro_rules! bitfield {
             } )?
         }
 
+        // Allow bitfields to be used in a nested manner.
         impl $crate::internal::BitSized for $ident
         where
             $storage: $crate::internal::Storage
@@ -70,7 +71,8 @@ macro_rules! bitfield {
         {
             fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
                 let mut f = f.debug_struct(stringify!($ident));
-                $( $( f.field(stringify!($field), &self.$field()); )* )?
+                // $( $( f.field(stringify!($field), &self.$field()); )* )?
+                $crate::bitfield_debug!(self f $($($field)*)?);
                 f.finish()
             }
         }
@@ -80,6 +82,19 @@ macro_rules! bitfield {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! bitfield_accessors {
+    // No accessors for `_reserved` fields.
+    (
+        $offset:expr;
+        $(#[$field_attr:meta])*
+        $field_vis:vis _reserved : $field_ty:ty,
+        $($rest:tt)*
+    ) => {
+        $crate::bitfield_accessors! {
+            $offset + <$field_ty as $crate::internal::BitSized>::BITS as u32;
+            $($rest)*
+        }
+    };
+
     (
         $offset:expr;
         $(#[$field_attr:meta])*
@@ -189,6 +204,21 @@ macro_rules! bitfield_enum {
             }
         }
     };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! bitfield_debug {
+    ($self:ident $f:ident _reserved $($tt:tt)*) => {
+        $crate::bitfield_debug! { $self $f $($tt)* }
+    };
+
+    ($self:ident $f:ident $field:ident $($tt:tt)*) => {
+        $f.field(stringify!($field), &$self.$field());
+        $crate::bitfield_debug! { $self $f $($tt)* }
+    };
+
+    ($self:ident $f:ident) => {};
 }
 
 #[doc(hidden)]
